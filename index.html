@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fruit Catcher Game</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      touch-action: manipulation;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #6e45e2, #88d3ce);
+      overflow: hidden;
+      user-select: none;
+    }
+    #game {
+      position: relative;
+      max-width: 500px;
+      max-height: 700px;
+      width: 100%;
+      height: calc(100vh - 40px);
+      margin: 20px auto;
+      padding-bottom: 20px;
+      border: 4px solid rgba(255,255,255,0.1);
+      background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+      backdrop-filter: blur(10px);
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+      border-radius: 20px;
+      z-index: 1;
+    }
+    .basket {
+      position: absolute;
+      bottom: 20px;
+      width: 100px;
+      height: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: url('https://cdn-icons-png.flaticon.com/512/3082/3082032.png') no-repeat center/contain;
+      transition: left 0.1s ease;
+      z-index: 10;
+    }
+    .catch-animation {
+      animation: catchBounce 0.3s ease;
+    }
+    @keyframes catchBounce {
+      0% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.2); }
+      100% { transform: translateX(-50%) scale(1); }
+    }
+    .fruit, .bomb {
+      position: absolute;
+      width: 35px;
+      height: 35px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      animation: spin 2s linear infinite;
+      z-index: 5;
+    }
+    .bomb {
+      animation: pulse 0.5s infinite alternate;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.1); }
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    #scoreBoard {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      font-size: 1rem;
+      background: rgba(255,255,255,0.9);
+      padding: 10px 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      z-index: 20;
+      font-weight: 600;
+      color: #333;
+    }
+    #startScreen, #gameOver, #storeScreen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-size: 1.8rem;
+      padding: 30px;
+      width: 90%;
+      background: rgba(255,255,255,0.95);
+      color: #333;
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+      z-index: 30;
+      font-weight: 700;
+    }
+    #startScreen {
+      display: block;
+    }
+    #gameOver, #storeScreen {
+      display: none;
+    }
+    #countdown {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 4rem;
+      color: #fff;
+      background: rgba(0,0,0,0.7);
+      padding: 20px 30px;
+      border-radius: 15px;
+      z-index: 40;
+      display: none;
+      text-align: center;
+      font-weight: 700;
+    }
+    .countdown-fade {
+      animation: fadeOut 0.5s ease forwards;
+    }
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    .arrow {
+      position: absolute;
+      bottom: 80px;
+      width: 50px;
+      height: 50px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      z-index: 20;
+      display: none;
+      animation: blink 0.5s infinite alternate;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+    #leftArrow {
+      left: 15%;
+      background-image: url('https://cdn-icons-png.flaticon.com/512/271/271220.png');
+    }
+    #rightArrow {
+      right: 15%;
+      background-image: url('https://cdn-icons-png.flaticon.com/512/271/271228.png');
+    }
+    @keyframes blink {
+      0% { opacity: 1; }
+      100% { opacity: 0.5; }
+    }
+    button {
+      margin: 15px 8px;
+      padding: 12px 24px;
+      font-size: 1rem;
+      cursor: pointer;
+      background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      font-weight: 600;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    #pauseButton {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      z-index: 20;
+    }
+    .skin-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 10px 0;
+      padding: 10px;
+      background: rgba(0,0,0,0.05);
+      border-radius: 10px;
+      transition: background 0.2s;
+    }
+    .skin-item:hover {
+      background: rgba(0,0,0,0.1);
+    }
+    .skin-item img {
+      width: 60px;
+      height: 30px;
+      object-fit: contain;
+    }
+    .skin-item button {
+      padding: 8px 12px;
+      font-size: 0.8rem;
+    }
+    .skin-item button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    @media (max-width: 600px) {
+      #game {
+        width: 100%;
+        height: 100vh;
+        margin: 0;
+        padding-bottom: 30px;
+        border-radius: 0;
+      }
+      .basket {
+        bottom: 30px;
+        width: 80px;
+        height: 40px;
+      }
+      .fruit, .bomb {
+        width: 30px;
+        height: 30px;
+      }
+      #scoreBoard {
+        font-size: 0.9rem;
+        padding: 8px 12px;
+      }
+      #startScreen, #gameOver, #storeScreen {
+        font-size: 1.4rem;
+        padding: 20px;
+        width: 95%;
+      }
+      #countdown {
+        font-size: 2.5rem;
+        padding: 15px 20px;
+      }
+      .arrow {
+        display: block;
+        width: 40px;
+        height: 40px;
+        bottom: 70px;
+      }
+      #leftArrow {
+        left: 10%;
+      }
+      #rightArrow {
+        right: 10%;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+      }
+      .skin-item img {
+        width: 50px;
+        height: 25px;
+      }
+      .skin-item button {
+        padding: 6px 10px;
+        font-size: 0.7rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div class="basket" id="basket"></div>
+    <div id="scoreBoard">
+      Score: <span id="score">0</span> | 
+      Lives: <span id="lives">3</span> | 
+      Coins: <span id="coins">0</span> | 
+      High Score: <span id="highScore">0</span>
+    </div>
+    <button id="pauseButton">Pause</button>
+    <div id="startScreen">
+      Fruit Catcher!<br />
+      Catch fruits to score points<br />
+      Avoid bombs (-10 points)!<br />
+      <button onclick="startGame()">Start Game</button>
+      <button onclick="showStore()">Store</button>
+    </div>
+    <div id="gameOver">
+      Game Over!<br />
+      Final Score: <span id="finalScore"></span><br />
+      <button onclick="restartGame()">Restart</button>
+      <button onclick="showStore()">Store</button>
+    </div>
+    <div id="storeScreen">
+      Store<br />
+      Coins: <span id="storeCoins">0</span><br />
+      <div id="skinList"></div>
+      <button onclick="startScreen.style.display='block';storeScreen.style.display='none'">Back</button>
+    </div>
+    <div id="countdown"></div>
+    <div id="leftArrow" class="arrow"></div>
+    <div id="rightArrow" class="arrow"></div>
+  </div>
+  <script>
+    const game = document.getElementById('game');
+    const basket = document.getElementById('basket');
+    const scoreDisplay = document.getElementById('score');
+    const livesDisplay = document.getElementById('lives');
+    const highScoreDisplay = document.getElementById('highScore');
+    const gameOverScreen = document.getElementById('gameOver');
+    const startScreen = document.getElementById('startScreen');
+    const finalScore = document.getElementById('finalScore');
+    const pauseButton = document.getElementById('pauseButton');
+    const coinsDisplay = document.getElementById('coins');
+    const storeScreen = document.getElementById('storeScreen');
+    const storeCoinsDisplay = document.getElementById('storeCoins');
+    const skinList = document.getElementById('skinList');
+    const countdownDisplay = document.getElementById('countdown');
+    const leftArrow = document.getElementById('leftArrow');
+    const rightArrow = document.getElementById('rightArrow');
+
+    const fruitTypes = [
+      { url: 'https://cdn-icons-png.flaticon.com/512/590/590685.png', points: 1, coins: 1, name: 'apple' },
+      { url: 'https://cdn-icons-png.flaticon.com/512/590/590682.png', points: 2, coins: 2, name: 'banana' },
+      { url: 'https://cdn-icons-png.flaticon.com/512/590/590684.png', points: 3, coins: 3, name: 'orange' },
+      { url: 'https://cdn-icons-png.flaticon.com/512/135/135706.png', points: 4, coins: 4, name: 'strawberry' },
+      { url: 'https://cdn-icons-png.flaticon.com/512/590/590697.png', points: 5, coins: 5, name: 'pineapple' },
+      { url: 'https://cdn-icons-png.flaticon.com/512/135/135717.png', points: 6, coins: 6, name: 'watermelon' },
+      { url: 'https://cdn-icons-png.flaticon.com/512/135/135720.png', points: 7, coins: 7, name: 'mango' },
+      { url: 'https://cdn-icons-png.flaticon.com/512/135/135616.png', points: 0, coins: 10, name: 'star', isPowerUp: true },
+      { url: 'https://cdn-icons-png.flaticon.com/512/1625/1625127.png', points: -10, coins: 0, name: 'bomb', isBomb: true }
+    ];
+
+    const basketSkins = [
+      { id: 'default', name: 'Default Basket', url: 'https://cdn-icons-png.flaticon.com/512/3082/3082032.png', price: 0 },
+      { id: 'wooden', name: 'Wooden Basket', url: 'https://cdn-icons-png.flaticon.com/512/2439/2439097.png', price: 50 },
+      { id: 'golden', name: 'Golden Basket', url: 'https://cdn-icons-png.flaticon.com/512/4297/4297858.png', price: 100 }
+    ];
+
+    let score = 0;
+    let lives = 3;
+    let highScore = localStorage.getItem('fruitCatcherHighScore') || 0;
+    let coins = parseFloat(localStorage.getItem('fruitCatcherCoins')) || 0;
+    if (isNaN(coins) || coins < 0) coins = 0;
+    let purchasedSkins = JSON.parse(localStorage.getItem('fruitCatcherPurchasedSkins')) || ['default'];
+    let selectedSkin = localStorage.getItem('fruitCatcherSelectedSkin') || 'default';
+    let basketX = game.clientWidth / 2;
+    let isPaused = false;
+    let spawnInterval;
+    let touchStartX = 0;
+    let isCountingDown = false;
+
+    highScoreDisplay.textContent = highScore;
+    coinsDisplay.textContent = coins;
+
+    function updateBasketSkin() {
+      const skin = basketSkins.find(s => s.id === selectedSkin);
+      basket.style.backgroundImage = `url('${skin.url}')`;
+    }
+
+    function showStore() {
+      startScreen.style.display = 'none';
+      gameOverScreen.style.display = 'none';
+      storeScreen.style.display = 'block';
+      storeCoinsDisplay.textContent = coins;
+      skinList.innerHTML = '';
+      basketSkins.forEach(skin => {
+        const skinItem = document.createElement('div');
+        skinItem.classList.add('skin-item');
+        skinItem.innerHTML = `
+          <span>${skin.name} (${skin.price} coins)</span>
+          <img src="${skin.url}" alt="${skin.name}">
+          ${
+            purchasedSkins.includes(skin.id)
+              ? `<button onclick="selectSkin('${skin.id}')">${skin.id === selectedSkin ? 'Selected' : 'Select'}</button>`
+              : `<button onclick="buySkin('${skin.id}')" ${coins < skin.price ? 'disabled' : ''}>Buy</button>`
+          }
+        `;
+        skinList.appendChild(skinItem);
+      });
+    }
+
+    function buySkin(skinId) {
+      const skin = basketSkins.find(s => s.id === skinId);
+      if (coins >= skin.price && !purchasedSkins.includes(skinId)) {
+        coins -= skin.price;
+        purchasedSkins.push(skinId);
+        localStorage.setItem('fruitCatcherCoins', coins);
+        localStorage.setItem('fruitCatcherPurchasedSkins', JSON.stringify(purchasedSkins));
+        coinsDisplay.textContent = coins;
+        showStore();
+      }
+    }
+
+    function selectSkin(skinId) {
+      if (purchasedSkins.includes(skinId)) {
+        selectedSkin = skinId;
+        localStorage.setItem('fruitCatcherSelectedSkin', selectedSkin);
+        updateBasketSkin();
+        showStore();
+      }
+    }
+
+    function moveBasket(dir) {
+      if (isPaused || isCountingDown) return;
+      const step = 40;
+      basketX += dir * step;
+      basketX = Math.max(50, Math.min(game.clientWidth - 50, basketX));
+      basket.style.left = basketX + 'px';
+    }
+
+    function moveBasketTo(x) {
+      if (isPaused || isCountingDown) return;
+      basketX = x;
+      basketX = Math.max(50, Math.min(game.clientWidth - 50, basketX));
+      basket.style.left = basketX + 'px';
+    }
+
+    document.addEventListener('keydown', e => {
+      if (isPaused || isCountingDown) return;
+      if (e.key === 'ArrowLeft') moveBasket(-1);
+      else if (e.key === 'ArrowRight') moveBasket(1);
+    });
+
+    game.addEventListener('touchstart', e => {
+      touchStartX = e.touches[0].clientX;
+    });
+
+    game.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const touchX = e.touches[0].clientX;
+      const gameRect = game.getBoundingClientRect();
+      moveBasketTo(touchX - gameRect.left);
+    });
+
+    function createFruit() {
+      if (isPaused) return;
+      const isBomb = Math.random() < 0.15; // 15% chance for bomb
+      const isPowerUp = !isBomb && Math.random() < 0.1; // 10% chance for power-up if not bomb
+      const item = document.createElement('div');
+      item.classList.add(isBomb ? 'bomb' : 'fruit');
+      item.style.left = Math.random() * (game.clientWidth - 35) + 'px';
+      
+      let itemType;
+      if (isBomb) {
+        itemType = fruitTypes.find(t => t.isBomb);
+      } else if (isPowerUp) {
+        itemType = fruitTypes.find(t => t.isPowerUp);
+      } else {
+        const regularFruits = fruitTypes.filter(t => !t.isPowerUp && !t.isBomb);
+        itemType = regularFruits[Math.floor(Math.random() * regularFruits.length)];
+      }
+      
+      item.style.backgroundImage = `url('${itemType.url}')`;
+      item.style.top = '0px';
+      item.dataset.points = itemType.points;
+      item.dataset.coins = itemType.coins;
+      item.dataset.isPowerUp = itemType.isPowerUp || false;
+      item.dataset.isBomb = itemType.isBomb || false;
+      game.appendChild(item);
+
+      let fallInterval = setInterval(() => {
+        if (isPaused) return;
+        const top = parseInt(item.style.top);
+        if (top > game.clientHeight - 85) {
+          const itemRect = item.getBoundingClientRect();
+          const basketRect = basket.getBoundingClientRect();
+
+          if (itemRect.left + 17.5 > basketRect.left && 
+              itemRect.left + 17.5 < basketRect.right && 
+              itemRect.bottom > basketRect.top) {
+            if (item.dataset.isPowerUp === 'true') {
+              lives = Math.min(lives + 1, 5);
+            } else if (item.dataset.isBomb === 'true') {
+              score = Math.max(0, score - 10); // Prevent negative score
+            } else {
+              score += parseInt(item.dataset.points);
+            }
+            let coinIncrement = parseInt(item.dataset.coins);
+            if (isNaN(coinIncrement)) coinIncrement = 0;
+            coins += coinIncrement;
+            if (isNaN(coins) || coins < 0) coins = 0;
+            coins = Math.min(coins, 99999);
+            coinsDisplay.textContent = coins;
+            localStorage.setItem('fruitCatcherCoins', coins);
+            scoreDisplay.textContent = score;
+            livesDisplay.textContent = lives;
+            if (score > highScore) {
+              highScore = score;
+              highScoreDisplay.textContent = highScore;
+              localStorage.setItem('fruitCatcherHighScore', highScore);
+            }
+            basket.classList.add('catch-animation');
+            setTimeout(() => {
+              basket.classList.remove('catch-animation');
+            }, 250);
+            if (score >= 10000) {
+              endGame();
+            }
+          } else if (item.dataset.isPowerUp !== 'true' && item.dataset.isBomb !== 'true') {
+            lives--;
+            lives = Math.max(lives, 0);
+            livesDisplay.textContent = lives;
+            if (lives <= 0) {
+              endGame();
+            }
+          }
+          item.remove();
+          clearInterval(fallInterval);
+        } else {
+          item.style.top = top + 5 + 'px';
+        }
+      }, 30);
+    }
+
+    function startCountdown(callback) {
+      isCountingDown = true;
+      countdownDisplay.style.display = 'block';
+      if (window.innerWidth <= 600) {
+        leftArrow.style.display = 'block';
+        rightArrow.style.display = 'block';
+      }
+
+      let count = 3;
+      countdownDisplay.textContent = count;
+      countdownDisplay.classList.add('countdown-fade');
+
+      const countdownInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+          countdownDisplay.textContent = count;
+          countdownDisplay.classList.remove('countdown-fade');
+          void countdownDisplay.offsetWidth;
+          countdownDisplay.classList.add('countdown-fade');
+        } else if (count === 0) {
+          countdownDisplay.textContent = 'Go!';
+          countdownDisplay.classList.remove('countdown-fade');
+          void countdownDisplay.offsetWidth;
+          countdownDisplay.classList.add('countdown-fade');
+        } else {
+          clearInterval(countdownInterval);
+          countdownDisplay.style.display = 'none';
+          countdownDisplay.classList.remove('countdown-fade');
+          leftArrow.style.display = 'none';
+          rightArrow.style.display = 'none';
+          isCountingDown = false;
+          callback();
+        }
+      }, 1000);
+    }
+
+    function startGame() {
+      score = 0;
+      lives = 3;
+      scoreDisplay.textContent = score;
+      livesDisplay.textContent = lives;
+      basketX = game.clientWidth / 2;
+      basket.style.left = basketX + 'px';
+      startScreen.style.display = 'none';
+      gameOverScreen.style.display = 'none';
+      storeScreen.style.display = 'none';
+      isPaused = false;
+      pauseButton.textContent = 'Pause';
+      startCountdown(() => {
+        spawnInterval = setInterval(createFruit, 1000);
+      });
+    }
+
+    function endGame() {
+      finalScore.textContent = score;
+      lives = 0;
+      livesDisplay.textContent = lives;
+      gameOverScreen.style.display = 'block';
+      storeScreen.style.display = 'none';
+      clearInterval(spawnInterval);
+    }
+
+    function restartGame() {
+      document.querySelectorAll('.fruit, .bomb').forEach(f => f.remove());
+      startGame();
+    }
+
+    function togglePause() {
+      isPaused = !isPaused;
+      pauseButton.textContent = isPaused ? 'Resume' : 'Pause';
+    }
+
+    pauseButton.addEventListener('click', togglePause);
+
+    window.onload = () => {
+      basketX = game.clientWidth / 2;
+      basket.style.left = basketX + 'px';
+      updateBasketSkin();
+      coins = 0;
+      coinsDisplay.textContent = coins;
+      localStorage.setItem('fruitCatcherCoins', '0');
+      countdownDisplay.style.display = 'none';
+      leftArrow.style.display = 'none';
+      rightArrow.style.display = 'none';
+    };
+  </script>
+</body>
+</html>
